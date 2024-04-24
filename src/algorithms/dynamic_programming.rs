@@ -137,9 +137,19 @@ impl Restriction {
                 let n2 = shape.1 as f64;
                 let i = i as f64;
                 let size = size as f64;
+                let start_index = f64::floor(i * (n2 - 1_f64) / (n1 - 1_f64)) - size;
+                let end_index = f64::ceil(i * (n2 - 1_f64) / (n1 - 1_f64)) + size;
                 (
-                    (f64::floor(i * (n2 - 1_f64) / (n1 - 1_f64)) - size) as usize,
-                    (f64::ceil(i * (n2 - 1_f64) / (n1 - 1_f64)) + size) as usize,
+                    if start_index < 0.0 {
+                        0
+                    } else {
+                        start_index as usize
+                    },
+                    if end_index > n2 as f64 {
+                        n2 as usize
+                    } else {
+                        end_index as usize
+                    },
                 )
             }
         }
@@ -271,10 +281,13 @@ fn arg_min<D: PartialOrd>(a: &D, b: &D, c: &D) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::{algorithms::{
-        dynamic_programming::{optimize_matrix, Element},
-        utils::Matrix,
-    }, Restriction};
+    use crate::{
+        algorithms::{
+            dynamic_programming::{optimize_matrix, Element},
+            utils::Matrix,
+        },
+        Restriction,
+    };
 
     use super::{compute_path, DynamicTimeWarping};
 
@@ -388,10 +401,12 @@ mod tests {
         let restriction = Restriction::Band(1);
         let all_indices = no_rest.iter(shape).collect::<Vec<(usize, usize)>>();
         let band_indices = restriction.iter(shape).collect::<Vec<(usize, usize)>>();
-        for idx in all_indices.into_iter(){
-            assert_eq!(band_indices.contains(&idx), restriction.contains(idx, shape));
+        for idx in all_indices.into_iter() {
+            assert_eq!(
+                band_indices.contains(&idx),
+                restriction.contains(idx, shape)
+            );
         }
-        
     }
 
     fn sized_send_sync_unpin_check<T: Sized + Send + Sync + Unpin>() {}

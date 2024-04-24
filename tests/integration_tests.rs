@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use dtw_rs::{Algorithm, DynamicTimeWarping, ParameterizedAlgorithm, Restriction};
+use dtw_rs_band_fork::{Algorithm, DynamicTimeWarping, ParameterizedAlgorithm, Restriction};
 use float_cmp::assert_approx_eq;
 
 #[test]
@@ -34,8 +34,8 @@ fn dynamic_time_warping_with_distance_closure() {
 
     let dtw = DynamicTimeWarping::with_closure(&a, &b, |a, b| f64::abs(a - b));
 
-    assert_eq!(dtw.distance(),expected_distance);
-    assert_eq!(*dtw.path(),expected_path);
+    assert_eq!(dtw.distance(), expected_distance);
+    assert_eq!(*dtw.path(), expected_path);
 }
 
 #[test]
