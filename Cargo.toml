@@ -1,6 +1,6 @@
 [package]
 name = "dtw_rs_band_fork"
-version = "0.9.9"
+version = "1.0.0"
 edition = "2021"
 authors = ["Lars Skifjeld <larssski@gmail.com>"]
 keywords = ["dynamic","time", "warping", "dtw"]
