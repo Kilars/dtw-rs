@@ -131,15 +131,6 @@ impl Restriction {
                         if (i == shape.0 - 1 && j == re - 1) || (next_rb >= shape.1) {
                             idx = None
                         } else if j == re - 1 {
-                            println!(
-                                "i: {}, j: {}, shape ({}, {}), jump to: ({}, {}))",
-                                i,
-                                j,
-                                shape.0,
-                                shape.1,
-                                i + 1,
-                                next_rb
-                            );
                             idx = Some((i + 1, next_rb));
                         } else {
                             idx = Some((i, j + 1));
@@ -212,19 +203,6 @@ fn optimize_matrix<D: std::fmt::Debug + Clone + PartialOrd + Add<D, Output = D>>
     restriction: Restriction,
     distance: impl Fn(usize, usize) -> D,
 ) {
-    restriction.iter(matrix.shape()).for_each(|(i, j)| {
-        let preceeding_cost = preceeding_cost(matrix, (i, j), restriction);
-        let after_map =
-            preceeding_cost.map(|idx| matrix[idx].clone() + Element::Value(distance(i, j)));
-        println!(
-            "i: {}, j: {}, prec: {:?}, d {:?}, map {:?}",
-            i,
-            j,
-            preceeding_cost,
-            distance(i, j),
-            after_map.unwrap_or(Element::Value(distance(i, j)))
-        );
-    });
     restriction.iter(matrix.shape()).for_each(|(i, j)| {
         matrix[(i, j)] = preceeding_cost(matrix, (i, j), restriction)
             .map(|idx| matrix[idx].clone() + Element::Value(distance(i, j)))
@@ -381,14 +359,6 @@ mod tests {
         );
 
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
-        let index_iter = Restriction::Band(1).iter((5, 5));
-        for index in index_iter {
-            if index.1 < 10 {
-                println!(" yoo index: {:?}", index);
-            }
-        }
-
-        println!("b4 optimize");
         optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
             f64::abs(a[i] - b[j])
         });
@@ -510,18 +480,7 @@ mod tests {
         let restriction = Restriction::Band(1);
         let all_indices = no_rest.iter(shape).collect::<Vec<(usize, usize)>>();
         let band_indices = restriction.iter(shape).collect::<Vec<(usize, usize)>>();
-        println!(
-            "Restriction: {:?}",
-            restriction.iter(shape).collect::<Vec<(usize, usize)>>()
-        );
-        println!(
-            "Restriction contains (0, 1) {}, shape: {:?}",
-            restriction.contains((0, 1), shape),
-            shape
-        );
-        println!("Band_incices: {:?}", band_indices);
         for idx in all_indices.into_iter() {
-            println!("idx {}, {}", idx.0, idx.1);
             assert_eq!(
                 band_indices.contains(&idx),
                 restriction.contains(idx, shape)
