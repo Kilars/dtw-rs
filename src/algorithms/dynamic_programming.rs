@@ -7,6 +7,7 @@ use crate::{Algorithm, ParameterizedAlgorithm};
 /// Dynamic time warping computation using the standard dynamic programming method.
 pub struct DynamicTimeWarping<D> {
     matrix: Matrix<Element<D>>,
+    restriction: Restriction,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -32,7 +33,17 @@ impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>> Alg
 
     fn distance(&self) -> D {
         let shape = self.matrix.shape();
-        match &self.matrix[(shape.0 - 1, shape.1 - 1)] {
+        let path_stop = match &self.restriction {
+            Restriction::None => (shape.0 - 1, shape.1 - 1),
+            Restriction::Band(band) => {
+                if shape.0 > shape.1 {
+                    (shape.0 - 1, (shape.1 - 1).min(shape.0 - 1 + band))
+                } else {
+                    ((shape.0 - 1).min(shape.1 - 1 + band), shape.1 - 1)
+                }
+            }
+        };
+        match &self.matrix[path_stop] {
             Element::Inf => panic!("Infinit distance"),
             Element::Value(v) => v.clone(),
         }
@@ -57,7 +68,10 @@ impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>>
     ) -> Self {
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
         optimize_matrix(&mut mat, hyper_parameters, |i, j| distance(&a[i], &b[j]));
-        Self { matrix: mat }
+        Self {
+            matrix: mat,
+            restriction: hyper_parameters,
+        }
     }
 }
 
