@@ -24,9 +24,7 @@ pub enum Restriction {
     Band(usize),
 }
 
-impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D>
-    for DynamicTimeWarping<D>
-{
+impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D> for DynamicTimeWarping<D> {
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> D) -> Self {
         DynamicTimeWarping::with_closure_and_param(a, b, distance, Restriction::None)
     }
@@ -55,8 +53,8 @@ impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>> Alg
     }
 }
 
-impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>>
-    ParameterizedAlgorithm<D> for DynamicTimeWarping<D>
+impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> ParameterizedAlgorithm<D>
+    for DynamicTimeWarping<D>
 {
     type Param = Restriction;
 
@@ -198,7 +196,7 @@ where
     }
 }
 
-fn optimize_matrix<D: std::fmt::Debug + Clone + PartialOrd + Add<D, Output = D>>(
+fn optimize_matrix<D: Clone + PartialOrd + Add<D, Output = D>>(
     matrix: &mut Matrix<Element<D>>,
     restriction: Restriction,
     distance: impl Fn(usize, usize) -> D,
