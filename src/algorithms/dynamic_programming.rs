@@ -36,7 +36,7 @@ impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>> Alg
         let path_stop = match &self.restriction {
             Restriction::None => (shape.0 - 1, shape.1 - 1),
             Restriction::Band(band) => {
-                if shape.0 > shape.1 {
+                if shape.0 < shape.1 {
                     (shape.0 - 1, (shape.1 - 1).min(shape.0 - 1 + band))
                 } else {
                     ((shape.0 - 1).min(shape.1 - 1 + band), shape.1 - 1)
