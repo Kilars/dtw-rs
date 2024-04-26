@@ -23,7 +23,9 @@ pub enum Restriction {
     Band(usize),
 }
 
-impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D> for DynamicTimeWarping<D> {
+impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D>
+    for DynamicTimeWarping<D>
+{
     fn with_closure<T>(a: &[T], b: &[T], distance: impl Fn(&T, &T) -> D) -> Self {
         DynamicTimeWarping::with_closure_and_param(a, b, distance, Restriction::None)
     }
@@ -42,8 +44,8 @@ impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> Algorithm<D> for Dyna
     }
 }
 
-impl<D: PartialOrd + Clone + Default + Add<D, Output = D>> ParameterizedAlgorithm<D>
-    for DynamicTimeWarping<D>
+impl<D: std::fmt::Debug + PartialOrd + Clone + Default + Add<D, Output = D>>
+    ParameterizedAlgorithm<D> for DynamicTimeWarping<D>
 {
     type Param = Restriction;
 
@@ -94,7 +96,6 @@ impl Restriction {
             Restriction::Band(_) => rb <= index.1 && index.1 < re,
         }
     }
-
     pub fn iter(&self, shape: (usize, usize)) -> impl Iterator<Item = (usize, usize)> {
         let restriction = *self;
         let mut idx = None;
@@ -111,11 +112,12 @@ impl Restriction {
                         }
                     }
                     Restriction::Band(_) => {
-                        let (rb, re) = restriction.range(shape, i);
+                        let (_rb, re) = restriction.range(shape, i);
+                        let (next_rb, _next_re) = restriction.range(shape, i + 1);
                         if i == shape.0 - 1 && j == shape.1 - 1 {
                             idx = None
-                        } else if j == re {
-                            idx = Some((i + 1, rb + 1));
+                        } else if j == re - 1 {
+                            idx = Some((i + 1, next_rb));
                         } else {
                             idx = Some((i, j + 1));
                         }
@@ -129,28 +131,13 @@ impl Restriction {
         .fuse()
     }
 
-    fn range(self, shape: (usize, usize), i: usize) -> (usize, usize) {
+    fn range(self, shape: (usize, usize), y: usize) -> (usize, usize) {
         match self {
             Restriction::None => (0, shape.1),
             Restriction::Band(size) => {
-                let n1 = shape.0 as f64;
-                let n2 = shape.1 as f64;
-                let i = i as f64;
-                let size = size as f64;
-                let start_index = f64::floor(i * (n2 - 1_f64) / (n1 - 1_f64)) - size;
-                let end_index = f64::ceil(i * (n2 - 1_f64) / (n1 - 1_f64)) + size;
-                (
-                    if start_index < 0.0 {
-                        0
-                    } else {
-                        start_index as usize
-                    },
-                    if end_index > n2 as f64 {
-                        n2 as usize
-                    } else {
-                        end_index as usize
-                    },
-                )
+                let min = (y as f32 - size as f32).max(0.0) as usize;
+                let max = (y as f32 + size as f32 + 1.0).min(shape.1 as f32) as usize;
+                (min, max)
             }
         }
     }
@@ -197,11 +184,24 @@ where
     }
 }
 
-fn optimize_matrix<D: Clone + PartialOrd + Add<D, Output = D>>(
+fn optimize_matrix<D: std::fmt::Debug + Clone + PartialOrd + Add<D, Output = D>>(
     matrix: &mut Matrix<Element<D>>,
     restriction: Restriction,
     distance: impl Fn(usize, usize) -> D,
 ) {
+    restriction.iter(matrix.shape()).for_each(|(i, j)| {
+        let preceeding_cost = preceeding_cost(matrix, (i, j), restriction);
+        let after_map =
+            preceeding_cost.map(|idx| matrix[idx].clone() + Element::Value(distance(i, j)));
+        println!(
+            "i: {}, j: {}, prec: {:?}, d {:?}, map {:?}",
+            i,
+            j,
+            preceeding_cost,
+            distance(i, j),
+            after_map.unwrap_or(Element::Value(distance(i, j)))
+        );
+    });
     restriction.iter(matrix.shape()).for_each(|(i, j)| {
         matrix[(i, j)] = preceeding_cost(matrix, (i, j), restriction)
             .map(|idx| matrix[idx].clone() + Element::Value(distance(i, j)))
@@ -327,21 +327,25 @@ mod tests {
                 Element::Inf,
                 Element::Inf,
                 Element::Inf,
-                Element::Inf,
-                Element::Value(0.0),
-                Element::Value(0.0),
-                Element::Inf,
-                Element::Inf,
-                Element::Inf,
+                // Row change
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Inf,
                 Element::Inf,
+                // Row change
                 Element::Inf,
                 Element::Value(0.0),
                 Element::Value(0.0),
                 Element::Value(0.0),
+                Element::Inf,
+                // Row change
+                Element::Inf,
+                Element::Inf,
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
                 Element::Inf,
                 Element::Inf,
                 Element::Inf,
@@ -354,6 +358,12 @@ mod tests {
         );
 
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
+        let index_iter = Restriction::Band(1).iter((5, 5));
+        for index in index_iter {
+            println!("index: {:?}", index);
+        }
+
+        println!("b4 optimize");
         optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
             f64::abs(a[i] - b[j])
         });
@@ -401,7 +411,18 @@ mod tests {
         let restriction = Restriction::Band(1);
         let all_indices = no_rest.iter(shape).collect::<Vec<(usize, usize)>>();
         let band_indices = restriction.iter(shape).collect::<Vec<(usize, usize)>>();
+        println!(
+            "Restriction: {:?}",
+            restriction.iter(shape).collect::<Vec<(usize, usize)>>()
+        );
+        println!(
+            "Restriction contains (0, 1) {}, shape: {:?}",
+            restriction.contains((0, 1), shape),
+            shape
+        );
+        println!("Band_incices: {:?}", band_indices);
         for idx in all_indices.into_iter() {
+            println!("idx {}, {}", idx.0, idx.1);
             assert_eq!(
                 band_indices.contains(&idx),
                 restriction.contains(idx, shape)

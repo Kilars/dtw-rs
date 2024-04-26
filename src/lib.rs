@@ -9,7 +9,7 @@ Computation methods:
 - [ ] FastDTW (future plan)
 
 ```
-use dtw_rs::{Algorithm, DynamicTimeWarping};
+use dtw_rs_band_fork::{Algorithm, DynamicTimeWarping};
 
 let a = [1.0, 3.0, 9.0, 2.0, 1.0];
 let b = [2.0, 0.0, 0.0, 8.0, 7.0, 2.0];
