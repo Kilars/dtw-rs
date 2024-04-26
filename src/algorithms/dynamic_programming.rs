@@ -112,11 +112,20 @@ impl Restriction {
                         }
                     }
                     Restriction::Band(_) => {
-                        let (_rb, re) = restriction.range(shape, i);
-                        let (next_rb, _next_re) = restriction.range(shape, i + 1);
-                        if i == shape.0 - 1 && j == shape.1 - 1 {
+                        let (_, re) = restriction.range(shape, i);
+                        let (next_rb, _) = restriction.range(shape, i + 1);
+                        if (i == shape.0 - 1 && j == re - 1) || (next_rb >= shape.1) {
                             idx = None
                         } else if j == re - 1 {
+                            println!(
+                                "i: {}, j: {}, shape ({}, {}), jump to: ({}, {}))",
+                                i,
+                                j,
+                                shape.0,
+                                shape.1,
+                                i + 1,
+                                next_rb
+                            );
                             idx = Some((i + 1, next_rb));
                         } else {
                             idx = Some((i, j + 1));
@@ -360,10 +369,86 @@ mod tests {
         let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
         let index_iter = Restriction::Band(1).iter((5, 5));
         for index in index_iter {
-            println!("index: {:?}", index);
+            if index.1 < 10 {
+                println!(" yoo index: {:?}", index);
+            }
         }
 
         println!("b4 optimize");
+        optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
+            f64::abs(a[i] - b[j])
+        });
+        // println!("{}", dtw.matrix);
+        // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
+        println!("Matrix:");
+        println!("{}", mat);
+        println!("Expectation:");
+        println!("{}", expected_matrix);
+        // assert!(mat == expected_matrix);
+        for (e1, e2) in mat.data().iter().zip(expected_matrix.data().iter()) {
+            assert_eq!(e1, e2)
+        }
+    }
+    #[test]
+    fn compute_matrix_restricted_band_non_square_matrix() {
+        let a = [0.0; 4];
+        let b = [0.0; 2];
+        let expected_matrix = Matrix::from_iter(
+            vec![
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
+                Element::Value(0.0),
+                Element::Value(0.0),
+                // Row change
+                Element::Inf,
+                Element::Value(0.0),
+                // Row change
+                Element::Inf,
+                Element::Inf,
+            ]
+            .into_iter(),
+            4,
+            2,
+        );
+
+        let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
+        optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
+            f64::abs(a[i] - b[j])
+        });
+        // println!("{}", dtw.matrix);
+        // println!("{:?}", dtw.matrix.data().iter().zip(expected_matrix.data().iter()).map(|(e1, e2)| e1 == e2).collect::<Vec<bool>>());
+        println!("Matrix:");
+        println!("{}", mat);
+        println!("Expectation:");
+        println!("{}", expected_matrix);
+        // assert!(mat == expected_matrix);
+        for (e1, e2) in mat.data().iter().zip(expected_matrix.data().iter()) {
+            assert_eq!(e1, e2)
+        }
+    }
+    #[test]
+    fn compute_matrix_restricted_band_non_square_matrix_2() {
+        let a = [0.0; 2];
+        let b = [0.0; 4];
+        let expected_matrix = Matrix::from_iter(
+            vec![
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Inf,
+                Element::Inf,
+                // Row change
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Value(0.0),
+                Element::Inf,
+            ]
+            .into_iter(),
+            2,
+            4,
+        );
+
+        let mut mat = Matrix::fill(Element::Inf, a.len(), b.len());
         optimize_matrix(&mut mat, crate::Restriction::Band(1), |i, j| {
             f64::abs(a[i] - b[j])
         });
